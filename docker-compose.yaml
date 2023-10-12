@@ -1,0 +1,31 @@
+version: '3'
+
+networks:
+  cassandra-network:
+    driver: bridge
+
+services:
+  cassandra1:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_one
+    ports:
+      - "9042:9042"
+    networks:
+      - cassandra-network
+  cassandra2:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_two
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+    networks:
+      - cassandra-network
+  cassandra3:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_three
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+    networks:
+      - cassandra-network
+
+    
+  
