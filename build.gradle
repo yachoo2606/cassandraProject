@@ -12,11 +12,24 @@ repositories {
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    //----- LOMBOK -----
     compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
-
 	testCompileOnly 'org.projectlombok:lombok:1.18.30'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    implementation 'com.datastax.cassandra:cassandra-driver-core:3.3.0'
+    //implementation 'com.datastax.oss:java-driver-core:4.0.1'
+    //implementation 'com.datastax.oss:java-driver-query-builder:4.0.1'
+    implementation 'org.apache.cassandra:cassandra-all:3.11.0'
+    //implementation 'org.apache.cassandra:cassandra-all:4.0.3'
+
+    //-------- loging ----------
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.9'
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: '2.0.9'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
 }
 
 test {
