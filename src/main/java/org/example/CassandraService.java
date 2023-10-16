@@ -28,12 +28,7 @@ public class CassandraService {
     private Session session;
 
     public CassandraService(Properties properties) throws BackendException {
-        this.address = properties.getProperty("server.address");
-        this.port = Integer.valueOf(properties.getProperty("server.port"));
-        this.keySpace = properties.getProperty("db.keyspace");
-        this.usernameDB = properties.getProperty("db.username");
-        this.passwordDB = properties.getProperty("db.password");
-
+        initVariables(properties);
 
         Cluster cluster = Cluster.builder()
                 .addContactPoint(this.address)
@@ -55,6 +50,45 @@ public class CassandraService {
         prepareStatements();
     }
 
+    private void initVariables(Properties properties){
+        this.address = System.getenv("CASSANDRA_SERVER_ADDRESS");
+        this.port = Integer.valueOf(System.getenv("CASSANDRA_SERVER_PORT"));
+        this.keySpace = System.getenv("CASSANDRA_KEYSPACE");
+        this.usernameDB = System.getenv("CASSANDRA_USER");
+        this.passwordDB = System.getenv("CASSANDRA_PASSWORD");
+
+        System.out.println(this.address);
+        System.out.println(this.port);
+        System.out.println(this.keySpace);
+        System.out.println(this.usernameDB);
+        System.out.println(this.passwordDB);
+
+        if(this.address == null){
+            System.out.println("ERROR INITIALIZE VARIABLE address");
+            log.error("ERROR INITIALIZE VARIABLES address");
+            System.exit(1);
+        }
+        if(this.port == null){
+            System.out.println("ERROR INITIALIZE VARIABLE port");
+            log.error("ERROR INITIALIZE VARIABLES port");
+            System.exit(1);
+        }
+        if(this.keySpace == null){
+            System.out.println("ERROR INITIALIZE VARIABLE keySpace");
+            log.error("ERROR INITIALIZE VARIABLES keySpace");
+            System.exit(1);
+        }
+        if(this.usernameDB == null){
+            System.out.println("ERROR INITIALIZE VARIABLE usernameDB");
+            log.error("ERROR INITIALIZE VARIABLES usernameDB");
+            System.exit(1);
+        }
+        if(this.passwordDB == null){
+            System.out.println("ERROR INITIALIZE VARIABLE passwordDB");
+            log.error("ERROR INITIALIZE VARIABLES passwordDB");
+            System.exit(1);
+        }
+    }
     private void prepareStatements() throws BackendException {
 
         try{

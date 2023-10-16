@@ -1,16 +1,16 @@
 package org.example;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BackendException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+@Slf4j
 public class Main {
 
-    private String address;
-    private String port;
     public static void main(String[] args) throws BackendException {
         Properties properties = loadProperties();
         assert properties != null;
@@ -30,6 +30,7 @@ public class Main {
 
         cassandraService.deleteAll();
 
+        log.info("Program executed successfully");
         System.exit(0);
     }
 
