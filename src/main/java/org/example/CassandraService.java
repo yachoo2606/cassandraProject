@@ -51,11 +51,11 @@ public class CassandraService {
     }
 
     private void initVariables(Properties properties){
-        this.address = System.getenv("CASSANDRA_SERVER_ADDRESS");
-        this.port = Integer.valueOf(System.getenv("CASSANDRA_SERVER_PORT"));
-        this.keySpace = System.getenv("CASSANDRA_KEYSPACE");
-        this.usernameDB = System.getenv("CASSANDRA_USER");
-        this.passwordDB = System.getenv("CASSANDRA_PASSWORD");
+        this.address = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS", properties.getProperty("server.address"));
+        this.port = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT",properties.getProperty("server.port")));
+        this.keySpace = System.getenv().getOrDefault("CASSANDRA_KEYSPACE",properties.getProperty("db.keyspace"));
+        this.usernameDB = System.getenv().getOrDefault("CASSANDRA_USER",properties.getProperty("db.username"));
+        this.passwordDB = System.getenv().getOrDefault("CASSANDRA_PASSWORD",properties.getProperty("db.password"));
 
         System.out.println(this.address);
         System.out.println(this.port);

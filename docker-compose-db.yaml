@@ -1,0 +1,66 @@
+version: '3'
+
+networks:
+  cassandra-network:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.23.0.0/24"
+
+
+volumes:
+  cassandra_one_data:
+    driver: local
+  cassandra_two_data:
+    driver: local
+  cassandra_three_data:
+    driver: local
+
+services:
+  cassandra-node-one:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_one
+    ports:
+      - 7000:7000
+      - 9042:9042
+    volumes:
+      - cassandra_one_data:/bitnami
+    environment:
+      - CASSANDRA_SEEDS=cassandra-node-one,cassandra-node-two,cassandra-node-three
+      - CASSANDRA_PASSWORD_SEEDER=yes
+      - CASSANDRA_PASSWORD=password123
+    networks:
+      cassandra-network:
+        ipv4_address: 172.23.0.2
+
+
+  cassandra-node-two:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_two
+    ports:
+      - 7001:7000
+      - 9043:9042
+    volumes:
+      - cassandra_two_data:/bitnami
+    environment:
+      - CASSANDRA_SEEDS=cassandra-node-one,cassandra-node-two,cassandra-node-three
+      - CASSANDRA_PASSWORD=password123
+    networks:
+      cassandra-network:
+        ipv4_address: 172.23.0.3
+
+
+  cassandra-node-three:
+    image: 'bitnami/cassandra:latest'
+    container_name: cassandra_three
+    ports:
+      - 7002:7000
+      - 9044:9042
+    volumes:
+      - cassandra_three_data:/bitnami
+    environment:
+      - CASSANDRA_SEEDS=cassandra-node-one,cassandra-node-two,cassandra-node-three
+      - CASSANDRA_PASSWORD=password123
+    networks:
+      cassandra-network:
+        ipv4_address: 172.23.0.4
