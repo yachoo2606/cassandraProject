@@ -14,10 +14,5 @@
         <Root level="WARN">
             <AppenderRef ref="STDOUT"/>
         </Root>
-<<<<<<< HEAD
     </Loggers>
-=======
-</Loggers>
->>>>>>> origin/main
-
 </Configuration>
