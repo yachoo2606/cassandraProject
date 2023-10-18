@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.exception.BackendException;
 
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.Properties;
 
@@ -17,7 +18,7 @@ public class CassandraService {
     private static PreparedStatement SELECT_ALL_FROM_USERS;
 	private static PreparedStatement INSERT_INTO_USERS;
 	private static PreparedStatement DELETE_ALL_FROM_USERS;
-	private static final String USER_FORMAT = "- %-10s  %-16s %-10s %-10s\n";
+	private static final String USER_FORMAT = "- %-10s  %-16s\n";
 
     private String address;
     private Integer port;
@@ -47,6 +48,10 @@ public class CassandraService {
         createKeySpace();
         session.execute("use " + this.keySpace + ";");
         createTableUsers();
+        createTableMovies();
+        createTableHalls();
+        createTableShowings();
+        createShowingUsersTable();
         prepareStatements();
     }
 
@@ -93,7 +98,7 @@ public class CassandraService {
 
         try{
             SELECT_ALL_FROM_USERS = session.prepare("SELECT * FROM users;");
-            INSERT_INTO_USERS = session.prepare("INSERT INTO users (companyName, name, phone, street) VALUES (?, ?, ?, ?);");
+            INSERT_INTO_USERS = session.prepare("INSERT INTO users (id,name) VALUES (?, ?);");
 			DELETE_ALL_FROM_USERS = session.prepare("TRUNCATE users;");
             log.info("Prepared statements");
         }catch (Exception e){
@@ -119,11 +124,45 @@ public class CassandraService {
     public void createTableUsers() throws BackendException {
         Create create = SchemaBuilder.createTable(this.keySpace, "users")
                 .ifNotExists()
-                .addPartitionKey("companyName", DataType.varchar())
-                .addPartitionKey("name",DataType.varchar())
-                .addColumn("phone",DataType.varchar())
-                .addColumn("street",DataType.varchar())
-                .addColumn("pets",DataType.list(DataType.varchar()));
+                .addPartitionKey("id", DataType.bigint())
+                .addColumn("name",DataType.varchar());
+        session.execute(create);
+    }
+
+    public void createTableMovies() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "movies")
+                .ifNotExists()
+                .addPartitionKey("id", DataType.bigint())
+                .addColumn("name",DataType.varchar());
+        session.execute(create);
+    }
+
+    public void createTableHalls() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "halls")
+                .ifNotExists()
+                .addPartitionKey("id", DataType.bigint())
+                .addColumn("name",DataType.varchar())
+                .addColumn("seats_number", DataType.cint());
+        session.execute(create);
+    }
+
+    public void createTableShowings() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "showings")
+                .ifNotExists()
+                .addPartitionKey("id", DataType.bigint())
+                .addColumn("showing_date",DataType.date())
+                .addColumn("showing_time", DataType.time())
+                .addPartitionKey("hall_id", DataType.bigint())
+                .addPartitionKey("movie_id", DataType.bigint());
+
+        session.execute(create);
+    }
+
+    public void createShowingUsersTable() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "showing_users")
+                .ifNotExists()
+                .addPartitionKey("showing_id", DataType.bigint())
+                .addPartitionKey("user_id", DataType.bigint());
 
         session.execute(create);
     }
@@ -141,20 +180,18 @@ public class CassandraService {
 		}
 
 		for (Row row : rs) {
-			String rcompanyName = row.getString("companyName");
+			String rid = row.getString("id");
 			String rname = row.getString("name");
-			String rphone = row.getString("phone");
-			String rstreet = row.getString("street");
 
-			builder.append(String.format(USER_FORMAT, rcompanyName, rname, rphone, rstreet));
+			builder.append(String.format(USER_FORMAT, rid, rname));
 		}
 
 		return builder.toString();
     }
 
-    public void upsertUser(String companyName, String name, String phone, String street) throws BackendException {
+    public void upsertUser(BigInteger id, String name) throws BackendException {
 		BoundStatement bs = new BoundStatement(INSERT_INTO_USERS);
-		bs.bind(companyName, name, phone, street);
+		bs.bind(id, name);
 
 		try {
 			session.execute(bs);

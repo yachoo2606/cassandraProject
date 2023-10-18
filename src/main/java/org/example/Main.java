@@ -17,18 +17,20 @@ public class Main {
 
         CassandraService cassandraService = new CassandraService(properties);
 
-        String output = cassandraService.selectAll();
-		System.out.println("Users: \n" + output);
+//        String output = cassandraService.selectAll();
+//		System.out.println("Users: \n" + output);
+//
+//        cassandraService.upsertUser("PP", "Adam", "609", "A St");
+//		cassandraService.upsertUser("PP", "Ola", "509", null);
+//		cassandraService.upsertUser("UAM", "Ewa", "720", "B St");
+//		cassandraService.upsertUser("PP", "Kasia", "713", "C St");
+//
+//        output = cassandraService.selectAll();
+//		System.out.println("Users: \n" + output);
+//
+//        cassandraService.deleteAll();
 
-        cassandraService.upsertUser("PP", "Adam", "609", "A St");
-		cassandraService.upsertUser("PP", "Ola", "509", null);
-		cassandraService.upsertUser("UAM", "Ewa", "720", "B St");
-		cassandraService.upsertUser("PP", "Kasia", "713", "C St");
 
-        output = cassandraService.selectAll();
-		System.out.println("Users: \n" + output);
-
-        cassandraService.deleteAll();
 
         log.info("Program executed successfully");
         System.exit(0);
