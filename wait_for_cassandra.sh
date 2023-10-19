@@ -30,4 +30,4 @@ echo "Cassandra is up. Starting your application."
 
 # Start your application here
 # Example: java -jar your_application.jar
-java -cp cassandraproject.jar org.example.Main
+java -cp cassandraproject.jar org.cassandraproject.Main

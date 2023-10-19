@@ -1,8 +1,7 @@
-package org.example;
+package org.cassandraproject;
 
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.example.exception.BackendException;
+import org.cassandraproject.exception.BackendException;
 
 import java.io.IOException;
 import java.io.InputStream;

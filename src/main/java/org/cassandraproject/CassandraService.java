@@ -1,4 +1,4 @@
-package org.example;
+package org.cassandraproject;
 
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.schemabuilder.Create;
@@ -6,7 +6,7 @@ import com.datastax.driver.core.schemabuilder.KeyspaceOptions;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.exception.BackendException;
+import org.cassandraproject.exception.BackendException;
 
 import java.util.Map;
 import java.util.Properties;
