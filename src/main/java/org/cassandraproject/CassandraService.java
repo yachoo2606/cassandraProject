@@ -1,6 +1,13 @@
 package org.cassandraproject;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.KeyspaceOptions;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
@@ -11,8 +18,8 @@ import org.cassandraproject.exception.BackendException;
 import java.util.Map;
 import java.util.Properties;
 
-@AllArgsConstructor
 @Slf4j
+@AllArgsConstructor
 public class CassandraService {
     private static PreparedStatement SELECT_ALL_FROM_USERS;
 	private static PreparedStatement INSERT_INTO_USERS;
@@ -116,7 +123,7 @@ public class CassandraService {
         }
     }
 
-    public void createTableUsers() throws BackendException {
+    public void createTableUsers(){
         Create create = SchemaBuilder.createTable(this.keySpace, "users")
                 .ifNotExists()
                 .addPartitionKey("companyName", DataType.varchar())
