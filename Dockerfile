@@ -22,9 +22,10 @@ WORKDIR /cassandraproject/executables/
 
 RUN apt-get -y update && \
     apt-get -y upgrade && \
-    apt-get -y install python3-pip
+    apt-get -y install python3-pip dos2unix
 
 COPY *.sh ./
+RUN dos2unix wait_for_cassandra.sh
 
 # Assuming your Dockerfile has an ENTRYPOINT specified
 ENTRYPOINT ["./wait_for_cassandra.sh"]
