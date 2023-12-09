@@ -1,8 +1,7 @@
-package org.example;
+package org.cassandraproject;
 
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.example.exception.BackendException;
+import org.cassandraproject.exception.BackendException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +12,6 @@ public class Main {
 
     public static void main(String[] args) throws BackendException {
         Properties properties = loadProperties();
-        assert properties != null;
 
         CassandraService cassandraService = new CassandraService(properties);
 
@@ -40,14 +38,13 @@ public class Main {
         Properties properties = new Properties();
         try(InputStream input = Main.class.getClassLoader().getResourceAsStream("application.properties")){
             if(input==null){
-                System.out.println("application.properties file not found");
-                return null;
+                throw new RuntimeException("application.properties file not found");
             }
             properties.load(input);
             return properties;
         }catch (IOException ex){
             ex.printStackTrace();
-            return null;
+            throw new RuntimeException(ex);
         }
     }
 }
