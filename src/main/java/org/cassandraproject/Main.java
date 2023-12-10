@@ -29,22 +29,23 @@ public class Main {
 //        cassandraService.deleteAll();
 
 
-
+        System.out.println("ELOOOOOOOOOOOOOOOOO");
         log.info("Program executed successfully");
         System.exit(0);
     }
 
     private static Properties loadProperties() {
         Properties properties = new Properties();
-        try(InputStream input = Main.class.getClassLoader().getResourceAsStream("application.properties")){
-            if(input==null){
+        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("application.properties")) {
+            if (input == null) {
                 throw new RuntimeException("application.properties file not found");
             }
             properties.load(input);
             return properties;
-        }catch (IOException ex){
+        } catch (IOException ex) {
             ex.printStackTrace();
             throw new RuntimeException(ex);
         }
     }
+
 }

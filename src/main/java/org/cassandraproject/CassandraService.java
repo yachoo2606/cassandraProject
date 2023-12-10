@@ -16,8 +16,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.cassandraproject.exception.BackendException;
 
 import java.math.BigInteger;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 
 @Slf4j
 @AllArgsConstructor
@@ -41,25 +48,36 @@ public class CassandraService {
         Cluster cluster = Cluster.builder()
                 .addContactPoint(this.address)
                 .withPort(this.port)
-                .withCredentials(this.usernameDB,this.passwordDB)
+                .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
-        try{
+        try {
             log.info("trying to connect");
             this.session = cluster.connect();
             log.info("Connected to cluster");
-        }catch (Exception e){
+
+            createKeySpace();
+            session.execute("use " + this.keySpace + ";");
+
+            // Create tables first
+            createTableUsers();
+            createTableSectors();
+            createTableSeats();
+            createTableMatches();
+            createMatchUsersSeatsTable();
+
+            // Prepare statements after creating tables
+            prepareStatements();
+
+            // Seed data after preparing statements
+            seedUsers(10);
+            seedSectors(4, 15);
+            seedMatches(10);
+
+        } catch (Exception e) {
             log.error(e.getMessage());
             log.error("connect to cluster failed");
             throw new BackendException(e.getMessage());
         }
-        createKeySpace();
-        session.execute("use " + this.keySpace + ";");
-        createTableUsers();
-        createTableMovies();
-        createTableHalls();
-        createTableShowings();
-        createShowingUsersTable();
-        prepareStatements();
     }
 
     private void initVariables(Properties properties){
@@ -128,51 +146,53 @@ public class CassandraService {
         }
     }
 
-    public void createTableUsers(){
+    public void createTableUsers() {
         Create create = SchemaBuilder.createTable(this.keySpace, "users")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
-                .addColumn("name",DataType.varchar());
+                .addColumn("name", DataType.varchar());
         session.execute(create);
     }
 
-    public void createTableMovies() throws BackendException {
-        Create create = SchemaBuilder.createTable(this.keySpace, "movies")
-                .ifNotExists()
-                .addPartitionKey("id", DataType.bigint())
-                .addColumn("name",DataType.varchar());
-        session.execute(create);
-    }
 
-    public void createTableHalls() throws BackendException {
-        Create create = SchemaBuilder.createTable(this.keySpace, "halls")
+    public void createTableSectors() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "sectors")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
                 .addColumn("name",DataType.varchar())
-                .addColumn("seats_number", DataType.cint());
+                .addColumn("active",DataType.cboolean());
         session.execute(create);
     }
 
-    public void createTableShowings() throws BackendException {
-        Create create = SchemaBuilder.createTable(this.keySpace, "showings")
+    public void createTableSeats() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "seats")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
-                .addColumn("showing_date",DataType.date())
-                .addColumn("showing_time", DataType.time())
-                .addPartitionKey("hall_id", DataType.bigint())
-                .addPartitionKey("movie_id", DataType.bigint());
-
+                .addColumn("number",DataType.varchar())
+                .addPartitionKey("sector_id", DataType.bigint())
+                .addColumn("active",DataType.cboolean());
         session.execute(create);
     }
 
-    public void createShowingUsersTable() throws BackendException {
-        Create create = SchemaBuilder.createTable(this.keySpace, "showing_users")
+    public void createTableMatches() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "matches")
                 .ifNotExists()
-                .addPartitionKey("showing_id", DataType.bigint())
-                .addPartitionKey("user_id", DataType.bigint());
-
+                .addPartitionKey("id", DataType.bigint())
+                .addColumn("name", DataType.varchar())
+                .addColumn("match_datetime", DataType.timestamp());
         session.execute(create);
     }
+
+
+    public void createMatchUsersSeatsTable() throws BackendException {
+        Create create = SchemaBuilder.createTable(this.keySpace, "match_users_seats")
+                .ifNotExists()
+                .addPartitionKey("match_id", DataType.bigint())
+                .addClusteringColumn("user_id", DataType.bigint())
+                .addClusteringColumn("seat_id", DataType.bigint());
+        session.execute(create);
+    }
+
 
     public String selectAll() throws BackendException{
         StringBuilder builder = new StringBuilder();
@@ -197,17 +217,24 @@ public class CassandraService {
     }
 
     public void upsertUser(BigInteger id, String name) throws BackendException {
-		BoundStatement bs = new BoundStatement(INSERT_INTO_USERS);
-		bs.bind(id, name);
+        BoundStatement bs = new BoundStatement(INSERT_INTO_USERS);
 
-		try {
-			session.execute(bs);
-		} catch (Exception e) {
-			throw new BackendException("Could not perform an upsert. " + e.getMessage() + ".", e);
-		}
+        // Convert BigInteger to Long
+        Long longId = id.longValue();
 
-		log.info("User " + name + " upserted");
-	}
+        bs.bind(longId, name);
+
+        try {
+            session.execute(bs);
+        } catch (Exception e) {
+            throw new BackendException("Could not perform an upsert. " + e.getMessage() + ".", e);
+        }
+
+        log.info("User " + name + " upserted");
+    }
+
+
+
 
     public void deleteAll() throws BackendException {
         BoundStatement bs = new BoundStatement(DELETE_ALL_FROM_USERS);
@@ -220,6 +247,80 @@ public class CassandraService {
 
         log.info("All users deleted");
     }
+
+    public void seedUsers(int numberOfUsers) throws BackendException {
+        for (int i = 1; i <= numberOfUsers; i++) {
+            upsertUser(BigInteger.valueOf(i), "User" + i);
+        }
+        log.info(numberOfUsers + " users seeded.");
+    }
+
+    public void seedSectors(int numberOfSectors, int seatsPerSector) throws BackendException {
+        int currentVal = 1;
+        for (int i = 1; i <= numberOfSectors; i++) {
+            createSector(BigInteger.valueOf(i), seatsPerSector, BigInteger.valueOf(currentVal));
+            currentVal += seatsPerSector;
+        }
+        log.info(numberOfSectors + " sectors seeded.");
+    }
+
+    private void createSector(BigInteger sectorId, int seatsPerSector, BigInteger currentSeatId) throws BackendException {
+        try {
+            // Create sector
+            session.execute("INSERT INTO sectors (id, name, active) VALUES (?, ?, ?);",
+                    sectorId.longValue(), "Sector" + sectorId.longValue(), true);
+
+            // Seed seats for the sector
+            seedSeats(sectorId, seatsPerSector, currentSeatId);
+
+        } catch (Exception e) {
+            throw new BackendException("Error seeding sectors: " + e.getMessage(), e);
+        }
+    }
+
+    private void seedSeats(BigInteger sectorId, int seatsPerSector, BigInteger currentSeatId) throws BackendException {
+        try {
+            long currentId = currentSeatId.intValue();
+            for (long seatNumber = 1; seatNumber <= seatsPerSector; seatNumber++) {
+                session.execute("INSERT INTO seats (id, number, sector_id, active) VALUES (?, ?, ?, ?);",
+                        currentId, "Seat" + seatNumber, sectorId.longValue(), true);
+                currentId++;
+            }
+        } catch (Exception e) {
+            throw new BackendException("Error seeding seats: " + e.getMessage(), e);
+        }
+    }
+
+
+
+    public void seedMatches(int numberOfMatches) throws BackendException {
+        int day = 1;
+        for (int i = 1; i <= numberOfMatches; i++) {
+            createMatch(i, "Match" + i, LocalDate.of(2024, 1, day), LocalTime.of(20, 0));
+            day++;
+        }
+        log.info(numberOfMatches + " matches seeded.");
+    }
+
+    private void createMatch(long matchId, String name, LocalDate matchDate, LocalTime matchTime) throws BackendException {
+        try {
+            // Combine LocalDate and LocalTime to create a LocalDateTime
+            LocalDateTime localDateTime = LocalDateTime.of(matchDate, matchTime);
+
+            // Convert LocalDateTime to Timestamp
+            Timestamp timestamp = Timestamp.valueOf(localDateTime);
+
+            session.execute("INSERT INTO matches (id, name, match_datetime) VALUES (?, ?, ?);",
+                    matchId, name, timestamp);
+        } catch (Exception e) {
+            throw new BackendException("Error seeding matches: " + e.getMessage(), e);
+        }
+    }
+
+
+
+
+
 
 
     protected void finalize() {
