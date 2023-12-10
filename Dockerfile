@@ -19,6 +19,7 @@ COPY --from=builder /build/build/libs/*.jar /cassandraproject/executables/cassan
 ADD dockerLib/cqlsh.tar.gz /cassandraproject/executables/
 
 WORKDIR /cassandraproject/executables/
+RUN mkdir "logs"
 
 RUN apt-get -y update && \
     apt-get -y upgrade && \
