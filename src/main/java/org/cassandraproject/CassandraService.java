@@ -14,6 +14,8 @@ import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cassandraproject.exception.BackendException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.sql.Timestamp;
@@ -21,10 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 @AllArgsConstructor
@@ -34,7 +33,8 @@ public class CassandraService {
 	private static PreparedStatement DELETE_ALL_FROM_USERS;
 	private static final String USER_FORMAT = "- %-10s  %-16s\n";
 
-    private String address;
+    private List<String> addresses = new ArrayList<>();
+    private String selectedAddress;
     private Integer port;
     private String keySpace;
     private String passwordDB;
@@ -44,34 +44,27 @@ public class CassandraService {
 
     public CassandraService(Properties properties) throws BackendException {
         initVariables(properties);
+        this.selectedAddress = getRandomAddress();
 
         Cluster cluster = Cluster.builder()
-                .addContactPoint(this.address)
+                .addContactPoint(this.selectedAddress)
                 .withPort(this.port)
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
         try {
             log.info("trying to connect");
+            log.info("Trying to connect to Cassandra cluster at " + selectedAddress);
             this.session = cluster.connect();
             log.info("Connected to cluster");
 
             createKeySpace();
             session.execute("use " + this.keySpace + ";");
 
-            // Create tables first
-            createTableUsers();
-            createTableSectors();
-            createTableSeats();
-            createTableMatches();
-            createMatchUsersSeatsTable();
+            //init tables
+            initTables();
 
             // Prepare statements after creating tables
             prepareStatements();
-
-            // Seed data after preparing statements
-            seedUsers(10);
-            seedSectors(4, 15);
-            seedMatches(10);
 
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -80,24 +73,57 @@ public class CassandraService {
         }
     }
 
+    private void initTables() throws BackendException {
+        // Create tables first
+            createTableUsers();
+            createTableSectors();
+            createTableSeats();
+            createTableMatches();
+            createMatchUsersSeatsTable();
+    }
+
+    private String getRandomAddress() {
+        Random random = new Random();
+        int index = random.nextInt(this.addresses.size());
+        return this.addresses.get(index);
+    }
+
     private void initVariables(Properties properties){
-        this.address = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS", properties.getProperty("server.address"));
+        String addressOne = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS_ONE", properties.getProperty("server.address_one"));
+        String addressTwo = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS_TWO", properties.getProperty("server.address_two"));
+        String addressThree = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS_THREE", properties.getProperty("server.address_three"));
+
         this.port = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT",properties.getProperty("server.port")));
         this.keySpace = System.getenv().getOrDefault("CASSANDRA_KEYSPACE",properties.getProperty("db.keyspace"));
         this.usernameDB = System.getenv().getOrDefault("CASSANDRA_USER",properties.getProperty("db.username"));
         this.passwordDB = System.getenv().getOrDefault("CASSANDRA_PASSWORD",properties.getProperty("db.password"));
 
-        System.out.println(this.address);
+        System.out.println(this.addresses);
         System.out.println(this.port);
         System.out.println(this.keySpace);
         System.out.println(this.usernameDB);
         System.out.println(this.passwordDB);
 
-        if(this.address == null){
+        if(addressOne == null){
             System.out.println("ERROR INITIALIZE VARIABLE address");
-            log.error("ERROR INITIALIZE VARIABLES address");
+            log.error("ERROR INITIALIZE VARIABLES address one");
             System.exit(1);
         }
+        if(addressTwo == null){
+            System.out.println("ERROR INITIALIZE VARIABLE address");
+            log.error("ERROR INITIALIZE VARIABLES address two");
+            System.exit(1);
+        }
+        if(addressThree == null){
+            System.out.println("ERROR INITIALIZE VARIABLE address");
+            log.error("ERROR INITIALIZE VARIABLES address three");
+            System.exit(1);
+        }
+
+        this.addresses.add(addressOne);
+        this.addresses.add(addressTwo);
+        this.addresses.add(addressThree);
+
         if(this.port == null){
             System.out.println("ERROR INITIALIZE VARIABLE port");
             log.error("ERROR INITIALIZE VARIABLES port");
