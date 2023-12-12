@@ -11,29 +11,28 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.KeyspaceOptions;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.cassandraproject.exception.BackendException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
 
 @Slf4j
-@AllArgsConstructor
 public class CassandraService {
     private static PreparedStatement SELECT_ALL_FROM_USERS;
 	private static PreparedStatement INSERT_INTO_USERS;
 	private static PreparedStatement DELETE_ALL_FROM_USERS;
-	private static final String USER_FORMAT = "- %-10s  %-16s\n";
+	private static final String USER_FORMAT = "- ID: %-10d name: %-16s";
 
-    private List<String> addresses = new ArrayList<>();
+    private final List<String> addresses = new ArrayList<>();
     private String selectedAddress;
     private Integer port;
     private String keySpace;
@@ -42,38 +41,31 @@ public class CassandraService {
 
     private Session session;
 
-    public CassandraService(Properties properties) throws BackendException {
+    public CassandraService(Properties properties){
+        System.out.println("Initializing variables in CassandraService in "+Thread.currentThread().getName());
+        log.info("Initializing variables in CassandraService in "+Thread.currentThread().getName());
         initVariables(properties);
         this.selectedAddress = getRandomAddress();
+        log.info("Threar: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
 
-        Cluster cluster = Cluster.builder()
+        try {
+            Cluster cluster = Cluster.builder()
                 .addContactPoint(this.selectedAddress)
                 .withPort(this.port)
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
-        try {
+
             log.info("trying to connect");
             log.info("Trying to connect to Cassandra cluster at " + selectedAddress);
             this.session = cluster.connect();
             log.info("Connected to cluster");
-
-            createKeySpace();
-            session.execute("use " + this.keySpace + ";");
-
-            //init tables
-            initTables();
-
-            // Prepare statements after creating tables
-            prepareStatements();
-
         } catch (Exception e) {
             log.error(e.getMessage());
             log.error("connect to cluster failed");
-            throw new BackendException(e.getMessage());
         }
     }
 
-    private void initTables() throws BackendException {
+    public void initTables() throws BackendException {
         // Create tables first
             createTableUsers();
             createTableSectors();
@@ -97,12 +89,6 @@ public class CassandraService {
         this.keySpace = System.getenv().getOrDefault("CASSANDRA_KEYSPACE",properties.getProperty("db.keyspace"));
         this.usernameDB = System.getenv().getOrDefault("CASSANDRA_USER",properties.getProperty("db.username"));
         this.passwordDB = System.getenv().getOrDefault("CASSANDRA_PASSWORD",properties.getProperty("db.password"));
-
-        System.out.println(this.addresses);
-        System.out.println(this.port);
-        System.out.println(this.keySpace);
-        System.out.println(this.usernameDB);
-        System.out.println(this.passwordDB);
 
         if(addressOne == null){
             System.out.println("ERROR INITIALIZE VARIABLE address");
@@ -144,8 +130,15 @@ public class CassandraService {
             log.error("ERROR INITIALIZE VARIABLES passwordDB");
             System.exit(1);
         }
+
+        System.out.println(this.addresses);
+        System.out.println(this.port);
+        System.out.println(this.keySpace);
+        System.out.println(this.usernameDB);
+        System.out.println(this.passwordDB);
+
     }
-    private void prepareStatements() throws BackendException {
+    public void prepareStatements() throws BackendException {
 
         try{
             SELECT_ALL_FROM_USERS = session.prepare("SELECT * FROM users;");
@@ -166,10 +159,16 @@ public class CassandraService {
 
         try{
             session.execute(keyspaceOptions);
+            log.info("Keyspace created successful");
         }catch (Exception e){
             log.error("creation of keyspace failed! "+e.getMessage());
             throw new BackendException("creation of keyspace failed! "+e.getMessage(),e);
         }
+    }
+
+    public void useKeyspace() {
+        session.execute("use " + this.keySpace + ";");
+        log.info("Keyspace switched successful");
     }
 
     public void createTableUsers() {
@@ -178,19 +177,21 @@ public class CassandraService {
                 .addPartitionKey("id", DataType.bigint())
                 .addColumn("name", DataType.varchar());
         session.execute(create);
+        log.info("Table users created successful");
     }
 
 
-    public void createTableSectors() throws BackendException {
+    public void createTableSectors(){
         Create create = SchemaBuilder.createTable(this.keySpace, "sectors")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
                 .addColumn("name",DataType.varchar())
                 .addColumn("active",DataType.cboolean());
         session.execute(create);
+        log.info("Table sectors created successful");
     }
 
-    public void createTableSeats() throws BackendException {
+    public void createTableSeats(){
         Create create = SchemaBuilder.createTable(this.keySpace, "seats")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
@@ -198,33 +199,34 @@ public class CassandraService {
                 .addPartitionKey("sector_id", DataType.bigint())
                 .addColumn("active",DataType.cboolean());
         session.execute(create);
+        log.info("Table seats created successful");
     }
 
-    public void createTableMatches() throws BackendException {
+    public void createTableMatches(){
         Create create = SchemaBuilder.createTable(this.keySpace, "matches")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
                 .addColumn("name", DataType.varchar())
                 .addColumn("match_datetime", DataType.timestamp());
         session.execute(create);
+        log.info("Table matches created successful");
     }
 
-
-    public void createMatchUsersSeatsTable() throws BackendException {
+    public void createMatchUsersSeatsTable(){
         Create create = SchemaBuilder.createTable(this.keySpace, "match_users_seats")
                 .ifNotExists()
                 .addPartitionKey("match_id", DataType.bigint())
                 .addClusteringColumn("user_id", DataType.bigint())
                 .addClusteringColumn("seat_id", DataType.bigint());
         session.execute(create);
+        log.info("Table MatchuserSeats created successful");
     }
 
-
-    public String selectAll() throws BackendException{
+    public String selectAllUsers() throws BackendException{
         StringBuilder builder = new StringBuilder();
 		BoundStatement bs = new BoundStatement(SELECT_ALL_FROM_USERS);
 
-		ResultSet rs = null;
+		ResultSet rs;
 
 		try {
 			rs = session.execute(bs);
@@ -233,10 +235,11 @@ public class CassandraService {
 		}
 
 		for (Row row : rs) {
-			String rid = row.getString("id");
+			Long rid = row.getLong("id");
 			String rname = row.getString("name");
 
 			builder.append(String.format(USER_FORMAT, rid, rname));
+            log.info(String.format(USER_FORMAT, rid, rname));
 		}
 
 		return builder.toString();
@@ -258,9 +261,6 @@ public class CassandraService {
 
         log.info("User " + name + " upserted");
     }
-
-
-
 
     public void deleteAll() throws BackendException {
         BoundStatement bs = new BoundStatement(DELETE_ALL_FROM_USERS);
@@ -317,8 +317,6 @@ public class CassandraService {
         }
     }
 
-
-
     public void seedMatches(int numberOfMatches) throws BackendException {
         int day = 1;
         for (int i = 1; i <= numberOfMatches; i++) {
@@ -342,12 +340,6 @@ public class CassandraService {
             throw new BackendException("Error seeding matches: " + e.getMessage(), e);
         }
     }
-
-
-
-
-
-
 
     protected void finalize() {
 		try {

@@ -76,7 +76,7 @@ services:
       - CASSANDRA_SERVER_ADDRESS_TWO=172.23.0.3
       - CASSANDRA_SERVER_ADDRESS_THREE=172.23.0.4
       - CASSANDRA_SERVER_PORT=9042
-      - CASSANDRA_KEYSPACE=testowa
+      - CASSANDRA_KEYSPACE=stadium
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
     depends_on:
