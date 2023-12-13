@@ -46,7 +46,7 @@ public class CassandraService {
         log.info("Initializing variables in CassandraService in "+Thread.currentThread().getName());
         initVariables(properties);
         this.selectedAddress = getRandomAddress();
-        log.info("Threar: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
+        log.info("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
 
         try {
             Cluster cluster = Cluster.builder()
@@ -55,13 +55,13 @@ public class CassandraService {
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
 
-            log.info("trying to connect");
+            log.info("Trying to connect...");
             log.info("Trying to connect to Cassandra cluster at " + selectedAddress);
             this.session = cluster.connect();
             log.info("Connected to cluster");
         } catch (Exception e) {
             log.error(e.getMessage());
-            log.error("connect to cluster failed");
+            log.error("Failed connecting to cluster");
         }
     }
 
@@ -91,18 +91,18 @@ public class CassandraService {
         this.passwordDB = System.getenv().getOrDefault("CASSANDRA_PASSWORD",properties.getProperty("db.password"));
 
         if(addressOne == null){
-            System.out.println("ERROR INITIALIZE VARIABLE address");
-            log.error("ERROR INITIALIZE VARIABLES address one");
+            System.out.println("ERROR INITIALIZING VARIABLE address");
+            log.error("ERROR INITIALIZING VARIABLES address one");
             System.exit(1);
         }
         if(addressTwo == null){
-            System.out.println("ERROR INITIALIZE VARIABLE address");
-            log.error("ERROR INITIALIZE VARIABLES address two");
+            System.out.println("ERROR INITIALIZING VARIABLE address");
+            log.error("ERROR INITIALIZING VARIABLES address two");
             System.exit(1);
         }
         if(addressThree == null){
-            System.out.println("ERROR INITIALIZE VARIABLE address");
-            log.error("ERROR INITIALIZE VARIABLES address three");
+            System.out.println("ERROR INITIALIZING VARIABLE address");
+            log.error("ERROR INITIALIZING VARIABLES address three");
             System.exit(1);
         }
 
@@ -111,23 +111,23 @@ public class CassandraService {
         this.addresses.add(addressThree);
 
         if(this.port == null){
-            System.out.println("ERROR INITIALIZE VARIABLE port");
-            log.error("ERROR INITIALIZE VARIABLES port");
+            System.out.println("ERROR INITIALIZING VARIABLE port");
+            log.error("ERROR INITIALIZING VARIABLES port");
             System.exit(1);
         }
         if(this.keySpace == null){
-            System.out.println("ERROR INITIALIZE VARIABLE keySpace");
-            log.error("ERROR INITIALIZE VARIABLES keySpace");
+            System.out.println("ERROR INITIALIZING VARIABLE keySpace");
+            log.error("ERROR INITIALIZING VARIABLES keySpace");
             System.exit(1);
         }
         if(this.usernameDB == null){
-            System.out.println("ERROR INITIALIZE VARIABLE usernameDB");
-            log.error("ERROR INITIALIZE VARIABLES usernameDB");
+            System.out.println("ERROR INITIALIZING VARIABLE usernameDB");
+            log.error("ERROR INITIALIZING VARIABLES usernameDB");
             System.exit(1);
         }
         if(this.passwordDB == null){
-            System.out.println("ERROR INITIALIZE VARIABLE passwordDB");
-            log.error("ERROR INITIALIZE VARIABLES passwordDB");
+            System.out.println("ERROR INITIALIZING VARIABLE passwordDB");
+            log.error("ERROR INITIALIZING VARIABLES passwordDB");
             System.exit(1);
         }
 
@@ -185,8 +185,7 @@ public class CassandraService {
         Create create = SchemaBuilder.createTable(this.keySpace, "sectors")
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
-                .addColumn("name",DataType.varchar())
-                .addColumn("active",DataType.cboolean());
+                .addColumn("name",DataType.varchar());
         session.execute(create);
         log.info("Table sectors created successful");
     }
@@ -196,8 +195,7 @@ public class CassandraService {
                 .ifNotExists()
                 .addPartitionKey("id", DataType.bigint())
                 .addColumn("number",DataType.varchar())
-                .addPartitionKey("sector_id", DataType.bigint())
-                .addColumn("active",DataType.cboolean());
+                .addPartitionKey("sector_id", DataType.bigint());
         session.execute(create);
         log.info("Table seats created successful");
     }
@@ -293,8 +291,8 @@ public class CassandraService {
     private void createSector(BigInteger sectorId, int seatsPerSector, BigInteger currentSeatId) throws BackendException {
         try {
             // Create sector
-            session.execute("INSERT INTO sectors (id, name, active) VALUES (?, ?, ?);",
-                    sectorId.longValue(), "Sector" + sectorId.longValue(), true);
+            session.execute("INSERT INTO sectors (id, name) VALUES (?, ?);",
+                    sectorId.longValue(), "Sector" + sectorId.longValue());
 
             // Seed seats for the sector
             seedSeats(sectorId, seatsPerSector, currentSeatId);
@@ -308,8 +306,8 @@ public class CassandraService {
         try {
             long currentId = currentSeatId.intValue();
             for (long seatNumber = 1; seatNumber <= seatsPerSector; seatNumber++) {
-                session.execute("INSERT INTO seats (id, number, sector_id, active) VALUES (?, ?, ?, ?);",
-                        currentId, "Seat" + seatNumber, sectorId.longValue(), true);
+                session.execute("INSERT INTO seats (id, number, sector_id) VALUES (?, ?, ?);",
+                        currentId, "Seat" + seatNumber, sectorId.longValue());
                 currentId++;
             }
         } catch (Exception e) {
@@ -340,6 +338,26 @@ public class CassandraService {
             throw new BackendException("Error seeding matches: " + e.getMessage(), e);
         }
     }
+
+    public void reserveSeat(long matchId, long userId, long seatId) throws BackendException {
+        try {
+            // Check if the seat is already taken
+            ResultSet resultSet = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
+
+            if (resultSet.all().isEmpty()) {
+                // Seat is not taken, reserve the seat for the user in the match
+                session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
+                log.info("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
+                System.out.println("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
+            } else {
+                log.info("Seat " + seatId + " is already taken for match " + matchId);
+                System.out.println("Seat " + seatId + " is already taken for match " + matchId);
+            }
+        } catch (Exception e) {
+            throw new BackendException("Error reserving seat: " + e.getMessage(), e);
+        }
+    }
+
 
     protected void finalize() {
 		try {

@@ -19,6 +19,13 @@ public class Main {
         Properties properties = loadProperties();
 
         CassandraService cassandraService = new CassandraService(properties);
+
+        int numUsers = Integer.parseInt(properties.getProperty("stadium.num_users"));
+        int numSectors = Integer.parseInt(properties.getProperty("stadium.num_sectors"));
+        int numSeatsPerSectors = Integer.parseInt(properties.getProperty("stadium.num_seats_per_sector"));
+        int numMatches = Integer.parseInt(properties.getProperty("stadium.num_matches"));
+
+
         try {
             cassandraService.createKeySpace();
             cassandraService.useKeyspace();
@@ -27,12 +34,12 @@ public class Main {
             cassandraService.prepareStatements();
 
             // Seed data after preparing statements
-            cassandraService.seedUsers(10);
-            cassandraService.seedSectors(4, 15);
-            cassandraService.seedMatches(10);
+            cassandraService.seedUsers(numUsers);
+            cassandraService.seedSectors(numSectors, numSeatsPerSectors);
+            cassandraService.seedMatches(numMatches);
 
         } catch (BackendException e) {
-            log.error("Error occur on initializing tables in database ");
+            log.error("Error occurred while initializing tables in the database");
             e.printStackTrace();
             throw new RuntimeException(e);
         }
