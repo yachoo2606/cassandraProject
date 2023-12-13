@@ -1,13 +1,6 @@
 package org.cassandraproject;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.KeyspaceOptions;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
@@ -215,8 +208,10 @@ public class CassandraService {
                 .ifNotExists()
                 .addPartitionKey("match_id", DataType.bigint())
                 .addClusteringColumn("user_id", DataType.bigint())
-                .addClusteringColumn("seat_id", DataType.bigint());
+                .addColumn("seat_id", DataType.bigint());
         session.execute(create);
+        session.execute("CREATE INDEX IF NOT EXISTS seat_id_index ON " + this.keySpace + ".match_users_seats (seat_id);");
+
         log.info("Table MatchuserSeats created successful");
     }
 
@@ -348,6 +343,7 @@ public class CassandraService {
                 // Seat is not taken, reserve the seat for the user in the match
                 session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
                 log.info("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
+                log.info(resultSet.all().toString());
                 System.out.println("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
             } else {
                 log.info("Seat " + seatId + " is already taken for match " + matchId);
