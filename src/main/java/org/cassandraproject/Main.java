@@ -12,13 +12,13 @@ import java.util.Properties;
 @Slf4j
 public class Main {
 
-    private final static Integer numberOfClients = 10;
-
     public static void main(String[] args){
 
         Properties properties = loadProperties();
 
         CassandraService cassandraService = new CassandraService(properties);
+
+        int numberOfClients = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_NUMBER_OF_CLIENTS", properties.getProperty("clientsNumber")));
 
         int numUsers = Integer.parseInt(properties.getProperty("stadium.num_users"));
         int numSectors = Integer.parseInt(properties.getProperty("stadium.num_sectors"));
@@ -45,7 +45,7 @@ public class Main {
         }
 
         List<Thread> threadList= new ArrayList<>();
-        for(int i=0;i<numberOfClients;i++){
+        for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
         }
