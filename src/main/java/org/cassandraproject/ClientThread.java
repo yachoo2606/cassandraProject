@@ -2,7 +2,6 @@ package org.cassandraproject;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cassandraproject.exception.BackendException;
 
 import java.util.Properties;
 import java.util.Random;
@@ -23,12 +22,12 @@ public class ClientThread implements Runnable {
         int numMatches = Integer.parseInt(properties.getProperty("stadium.num_matches"));
 
         try {
-            log.info("Trying to declare cassandraService in " + Thread.currentThread().getName());
+//            log.info("Trying to declare cassandraService in " + Thread.currentThread().getName());
             CassandraService cassandraService = new CassandraService(properties);
             cassandraService.useKeyspace();
             cassandraService.prepareStatements();
 
-            log.info("Declared cassandraService in " + Thread.currentThread().getName());
+//            log.info("Declared cassandraService in " + Thread.currentThread().getName());
 
             Random random = new Random();
             long userId = random.nextInt(numUsers) + 1;
