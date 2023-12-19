@@ -11,15 +11,21 @@ import java.util.Random;
 public class ClientThread implements Runnable {
 
     private Properties properties;
+    int numUsers;
+    int numSectors;
+    int numSeatsPerSectors;
+    int numMatches;
 
+    public ClientThread(Properties properties) {
+        this.properties = properties;
+        this.numUsers = Integer.parseInt(System.getenv().getOrDefault("ENV_USERS",properties.getProperty("stadium.num_users")));
+        this.numSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SECTORS",properties.getProperty("stadium.num_sectors")));
+        this.numSeatsPerSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SEATS_SECTOR",properties.getProperty("stadium.num_seats_per_sector")));
+        this.numMatches = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_MATCHES",properties.getProperty("stadium.num_matches")));
+    }
     @Override
     public void run() {
         log.info(Thread.currentThread().getName());
-
-        int numUsers = Integer.parseInt(properties.getProperty("stadium.num_users"));
-        int numSectors = Integer.parseInt(properties.getProperty("stadium.num_sectors"));
-        int numSeatsPerSectors = Integer.parseInt(properties.getProperty("stadium.num_seats_per_sector"));
-        int numMatches = Integer.parseInt(properties.getProperty("stadium.num_matches"));
 
         try {
 //            log.info("Trying to declare cassandraService in " + Thread.currentThread().getName());

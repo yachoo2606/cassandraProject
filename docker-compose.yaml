@@ -82,6 +82,10 @@ services:
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
       - CASSANDRA_NUMBER_OF_CLIENTS=100
+      - ENV_USERS=10
+      - ENV_NUM_SECTORS=4
+      - ENV_NUM_SEATS_SECTOR=3
+      - ENV_NUM_MATCHES=1
     depends_on:
       - cassandra-node-one
       - cassandra-node-two
