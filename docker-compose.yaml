@@ -79,7 +79,7 @@ services:
       - CASSANDRA_KEYSPACE=stadium
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
-      - CASSANDRA_NUMBER_OF_CLIENTS=100
+      - CASSANDRA_NUMBER_OF_CLIENTS=5
     depends_on:
       - cassandra-node-one
       - cassandra-node-two

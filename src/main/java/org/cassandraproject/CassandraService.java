@@ -148,7 +148,7 @@ public class CassandraService {
                 .ifNotExists()
                 .with()
                 .replication(Map.of("class","SimpleStrategy", "replication_factor",3));
-        keyspaceOptions.setConsistencyLevel(ConsistencyLevel.ANY);
+        keyspaceOptions.setConsistencyLevel(ConsistencyLevel.QUORUM);
 
         try{
             session.execute(keyspaceOptions);
@@ -336,18 +336,14 @@ public class CassandraService {
 
     public void reserveSeat(long matchId, long userId, long seatId) throws BackendException {
         try {
-            // Check if the seat is already taken
             ResultSet resultSet = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
+            log.info("[*** RESULT SET ***] " + resultSet.all().toString());
 
             if (resultSet.all().isEmpty()) {
-                // Seat is not taken, reserve the seat for the user in the match
                 session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
-                log.info("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
-                log.info(resultSet.all().toString());
-                System.out.println("Seat " + seatId + " reserved for user " + userId + " in match " + matchId);
+                log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + " ***]");
             } else {
-                log.info("Seat " + seatId + " is already taken for match " + matchId);
-                System.out.println("Seat " + seatId + " is already taken for match " + matchId);
+                log.info("[*** Seat " + seatId + " is already taken for match " + matchId + " ***]");
             }
         } catch (Exception e) {
             throw new BackendException("Error reserving seat: " + e.getMessage(), e);
