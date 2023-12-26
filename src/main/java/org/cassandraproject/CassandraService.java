@@ -35,8 +35,8 @@ public class CassandraService {
     private Session session;
 
     public CassandraService(Properties properties){
-        System.out.println("Initializing variables in CassandraService in "+Thread.currentThread().getName());
-        log.info("Initializing variables in CassandraService in "+Thread.currentThread().getName());
+//        System.out.println("Initializing variables in CassandraService in "+Thread.currentThread().getName());
+//        log.info("Initializing variables in CassandraService in "+Thread.currentThread().getName());
         initVariables(properties);
         this.selectedAddress = getRandomAddress();
         log.info("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
@@ -48,10 +48,10 @@ public class CassandraService {
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
 
-            log.info("Trying to connect...");
-            log.info("Trying to connect to Cassandra cluster at " + selectedAddress);
+//            log.info("Trying to connect...");
+//            info("Trying to connect to Cassandra cluster at " + selectedAddress);
             this.session = cluster.connect();
-            log.info("Connected to cluster");
+//            log.info("Connected to cluster");
         } catch (Exception e) {
             log.error(e.getMessage());
             log.error("Failed connecting to cluster");
@@ -124,11 +124,11 @@ public class CassandraService {
             System.exit(1);
         }
 
-        System.out.println(this.addresses);
-        System.out.println(this.port);
-        System.out.println(this.keySpace);
-        System.out.println(this.usernameDB);
-        System.out.println(this.passwordDB);
+//        System.out.println(this.addresses);
+//        System.out.println(this.port);
+//        System.out.println(this.keySpace);
+//        System.out.println(this.usernameDB);
+//        System.out.println(this.passwordDB);
 
     }
     public void prepareStatements() throws BackendException {
@@ -137,7 +137,7 @@ public class CassandraService {
             SELECT_ALL_FROM_USERS = session.prepare("SELECT * FROM users;");
             INSERT_INTO_USERS = session.prepare("INSERT INTO users (id,name) VALUES (?, ?);");
 			DELETE_ALL_FROM_USERS = session.prepare("TRUNCATE users;");
-            log.info("Prepared statements");
+//            log.info("Prepared statements");
         }catch (Exception e){
             throw new BackendException("Could not prepare statements. "+e.getMessage(),e);
         }
@@ -215,29 +215,6 @@ public class CassandraService {
         log.info("Table MatchuserSeats created successful");
     }
 
-    public String selectAllUsers() throws BackendException{
-        StringBuilder builder = new StringBuilder();
-		BoundStatement bs = new BoundStatement(SELECT_ALL_FROM_USERS);
-
-		ResultSet rs;
-
-		try {
-			rs = session.execute(bs);
-		} catch (Exception e) {
-			throw new BackendException("Could not perform a query. " + e.getMessage() + ".", e);
-		}
-
-		for (Row row : rs) {
-			Long rid = row.getLong("id");
-			String rname = row.getString("name");
-
-			builder.append(String.format(USER_FORMAT, rid, rname));
-            log.info(String.format(USER_FORMAT, rid, rname));
-		}
-
-		return builder.toString();
-    }
-
     public void upsertUser(BigInteger id, String name) throws BackendException {
         BoundStatement bs = new BoundStatement(INSERT_INTO_USERS);
 
@@ -253,18 +230,6 @@ public class CassandraService {
         }
 
         log.info("User " + name + " upserted");
-    }
-
-    public void deleteAll() throws BackendException {
-        BoundStatement bs = new BoundStatement(DELETE_ALL_FROM_USERS);
-
-        try {
-            session.execute(bs);
-        } catch (Exception e) {
-            throw new BackendException("Could not perform a delete operation. " + e.getMessage() + ".", e);
-        }
-
-        log.info("All users deleted");
     }
 
     public void seedUsers(int numberOfUsers) throws BackendException {

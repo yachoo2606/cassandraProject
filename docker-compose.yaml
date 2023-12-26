@@ -1,4 +1,7 @@
-version: '3'
+version: '3.8'
+
+x-common-settings: &cassandra-image
+  image: 'bitnami/cassandra:latest'
 
 networks:
   cassandra-network:
@@ -6,7 +9,6 @@ networks:
       driver: default
       config:
         - subnet: "172.23.0.0/24"
-
 
 volumes:
   cassandra_one_data:
@@ -20,7 +22,7 @@ volumes:
 
 services:
   cassandra-node-one:
-    image: 'bitnami/cassandra:latest'
+    <<: *cassandra-image
     container_name: cassandra_one
     ports:
       - 7000:7000
@@ -37,7 +39,7 @@ services:
 
 
   cassandra-node-two:
-    image: 'bitnami/cassandra:latest'
+    <<: *cassandra-image
     container_name: cassandra_two
     ports:
       - 7001:7000
@@ -53,7 +55,7 @@ services:
 
 
   cassandra-node-three:
-    image: 'bitnami/cassandra:latest'
+    <<: *cassandra-image
     container_name: cassandra_three
     ports:
       - 7002:7000
@@ -80,6 +82,11 @@ services:
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
       - CASSANDRA_NUMBER_OF_CLIENTS=5
+      - CASSANDRA_NUMBER_OF_CLIENTS=100
+      - ENV_USERS=20
+      - ENV_NUM_SECTORS=4
+      - ENV_NUM_SEATS_SECTOR=3
+      - ENV_NUM_MATCHES=1
     depends_on:
       - cassandra-node-one
       - cassandra-node-two

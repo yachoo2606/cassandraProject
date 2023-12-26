@@ -20,10 +20,10 @@ public class Main {
 
         int numberOfClients = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_NUMBER_OF_CLIENTS", properties.getProperty("clientsNumber")));
 
-        int numUsers = Integer.parseInt(properties.getProperty("stadium.num_users"));
-        int numSectors = Integer.parseInt(properties.getProperty("stadium.num_sectors"));
-        int numSeatsPerSectors = Integer.parseInt(properties.getProperty("stadium.num_seats_per_sector"));
-        int numMatches = Integer.parseInt(properties.getProperty("stadium.num_matches"));
+        int numUsers = Integer.parseInt(System.getenv().getOrDefault("ENV_USERS",properties.getProperty("stadium.num_users")));
+        int numSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SECTORS",properties.getProperty("stadium.num_sectors")));
+        int numSeatsPerSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SEATS_SECTOR",properties.getProperty("stadium.num_seats_per_sector")));
+        int numMatches = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_MATCHES",properties.getProperty("stadium.num_matches")));
 
 
         try {
