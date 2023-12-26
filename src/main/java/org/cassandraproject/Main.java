@@ -12,13 +12,20 @@ import java.util.Properties;
 @Slf4j
 public class Main {
 
-    private final static Integer numberOfClients = 10;
-
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException {
 
         Properties properties = loadProperties();
 
         CassandraService cassandraService = new CassandraService(properties);
+
+        int numberOfClients = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_NUMBER_OF_CLIENTS", properties.getProperty("clientsNumber")));
+
+        int numUsers = Integer.parseInt(System.getenv().getOrDefault("ENV_USERS",properties.getProperty("stadium.num_users")));
+        int numSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SECTORS",properties.getProperty("stadium.num_sectors")));
+        int numSeatsPerSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SEATS_SECTOR",properties.getProperty("stadium.num_seats_per_sector")));
+        int numMatches = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_MATCHES",properties.getProperty("stadium.num_matches")));
+
+
         try {
             cassandraService.createKeySpace();
             cassandraService.useKeyspace();
@@ -27,20 +34,21 @@ public class Main {
             cassandraService.prepareStatements();
 
             // Seed data after preparing statements
-            cassandraService.seedUsers(10);
-            cassandraService.seedSectors(4, 15);
-            cassandraService.seedMatches(10);
+            cassandraService.seedUsers(numUsers);
+            cassandraService.seedSectors(numSectors, numSeatsPerSectors);
+            cassandraService.seedMatches(numMatches);
 
         } catch (BackendException e) {
-            log.error("Error occur on initializing tables in database ");
+            log.error("Error occurred while initializing tables in the database");
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
         List<Thread> threadList= new ArrayList<>();
-        for(int i=0;i<numberOfClients;i++){
+        for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
+            Thread.currentThread().sleep(1000);
         }
         for (int i = 0; i < numberOfClients; i++) {
             try {

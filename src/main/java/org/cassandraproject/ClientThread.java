@@ -1,38 +1,51 @@
 package org.cassandraproject;
 
-
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.cassandraproject.exception.BackendException;
 
 import java.util.Properties;
+import java.util.Random;
 
 @Slf4j
 @AllArgsConstructor
-public class ClientThread implements Runnable{
+public class ClientThread implements Runnable {
 
     private Properties properties;
+    int numUsers;
+    int numSectors;
+    int numSeatsPerSectors;
+    int numMatches;
 
+    public ClientThread(Properties properties) {
+        this.properties = properties;
+        this.numUsers = Integer.parseInt(System.getenv().getOrDefault("ENV_USERS",properties.getProperty("stadium.num_users")));
+        this.numSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SECTORS",properties.getProperty("stadium.num_sectors")));
+        this.numSeatsPerSectors = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_SEATS_SECTOR",properties.getProperty("stadium.num_seats_per_sector")));
+        this.numMatches = Integer.parseInt(System.getenv().getOrDefault("ENV_NUM_MATCHES",properties.getProperty("stadium.num_matches")));
+    }
     @Override
     public void run() {
         log.info(Thread.currentThread().getName());
+
         try {
-            log.info("Trying declare cassandraService in "+Thread.currentThread().getName());
+//            log.info("Trying to declare cassandraService in " + Thread.currentThread().getName());
             CassandraService cassandraService = new CassandraService(properties);
             cassandraService.useKeyspace();
             cassandraService.prepareStatements();
 
-            log.info("Declared cassandraService in "+Thread.currentThread().getName());
+//            log.info("Declared cassandraService in " + Thread.currentThread().getName());
 
-            cassandraService.selectAllUsers();
+            Random random = new Random();
+            long userId = random.nextInt(numUsers) + 1;
+            long seatId = random.nextInt(numSeatsPerSectors * numSectors) + 1;
+            long matchId = random.nextInt(numMatches) + 1;
 
-            log.info("Thread "+Thread.currentThread().getName()+" executed completed!");
-        }catch (BackendException e){
-            log.error("error occur");
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            cassandraService.reserveSeat(matchId, userId, seatId);
+
+            log.info("Thread " + Thread.currentThread().getName() + " executed completed!");
+
         } catch (Exception e) {
-            log.error("error occur");
+            log.error("Error occurred");
             e.printStackTrace();
             throw new RuntimeException(e);
         }

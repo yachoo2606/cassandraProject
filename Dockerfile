@@ -22,7 +22,7 @@ WORKDIR /cassandraproject/executables/
 RUN mkdir "logs"
 
 RUN apt-get -y update && \
-    apt-get -y upgrade && \
+#    apt-get -y upgrade && \
     apt-get -y install python3-pip dos2unix
 
 COPY *.sh ./
