@@ -37,7 +37,7 @@ public class ClientThread implements Runnable {
 
             Random random = new Random();
             long userId = random.nextInt(numUsers) + 1;
-            long seatId = random.nextInt(numSeatsPerSectors) + 1;
+            long seatId = random.nextInt(numSeatsPerSectors * numSectors) + 1;
             long matchId = random.nextInt(numMatches) + 1;
 
             cassandraService.reserveSeat(matchId, userId, seatId);

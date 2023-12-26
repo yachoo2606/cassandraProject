@@ -301,19 +301,26 @@ public class CassandraService {
 
     public void reserveSeat(long matchId, long userId, long seatId) throws BackendException {
         try {
-            ResultSet resultSet = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
-            log.info("[*** RESULT SET ***] " + resultSet.all().toString());
-
-            if (resultSet.all().isEmpty()) {
-                session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
-                log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + " ***]");
-            } else {
+            ResultSet seatCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
+            if (!seatCheck.isExhausted()) {
                 log.info("[*** Seat " + seatId + " is already taken for match " + matchId + " ***]");
+                return ;
             }
+
+            ResultSet userCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND user_id = ?;", matchId, userId);
+            if (!userCheck.isExhausted()) {
+                log.info("[*** User " + userId + " has already reserved a seat for match " + matchId + " ***]");
+                return ;
+            }
+
+            session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
+            log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + " ***]");
+
         } catch (Exception e) {
             throw new BackendException("Error reserving seat: " + e.getMessage(), e);
         }
     }
+
 
 
     protected void finalize() {

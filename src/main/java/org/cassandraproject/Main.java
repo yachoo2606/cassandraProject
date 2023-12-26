@@ -12,7 +12,7 @@ import java.util.Properties;
 @Slf4j
 public class Main {
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException {
 
         Properties properties = loadProperties();
 
@@ -48,6 +48,7 @@ public class Main {
         for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
+            Thread.currentThread().sleep(1000);
         }
         for (int i = 0; i < numberOfClients; i++) {
             try {
