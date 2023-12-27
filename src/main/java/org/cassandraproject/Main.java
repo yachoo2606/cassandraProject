@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 @Slf4j
 public class Main {
@@ -48,7 +49,7 @@ public class Main {
         for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
-            Thread.currentThread().sleep(1000);
+            Thread.sleep(new Random().nextInt(1000-100)+100);
         }
         for (int i = 0; i < numberOfClients; i++) {
             try {

@@ -26,14 +26,13 @@ public class ClientThread implements Runnable {
     @Override
     public void run() {
         log.info(Thread.currentThread().getName());
-
         try {
-//            log.info("Trying to declare cassandraService in " + Thread.currentThread().getName());
+            log.debug("Trying to declare cassandraService in " + Thread.currentThread().getName());
             CassandraService cassandraService = new CassandraService(properties);
             cassandraService.useKeyspace();
             cassandraService.prepareStatements();
 
-//            log.info("Declared cassandraService in " + Thread.currentThread().getName());
+            log.debug("Declared cassandraService in " + Thread.currentThread().getName());
 
             Random random = new Random();
             long userId = random.nextInt(numUsers) + 1;
