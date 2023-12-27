@@ -49,7 +49,7 @@ public class Main {
         for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
-            Thread.sleep(new Random().nextInt(1000-100)+100);
+//            Thread.sleep(new Random().nextInt(1000-100)+100);
         }
         for (int i = 0; i < numberOfClients; i++) {
             try {
@@ -70,7 +70,7 @@ public class Main {
                 throw new RuntimeException("application.properties file not found");
             }
             properties.load(input);
-            log.info("Properties loaded in "+Thread.currentThread().getName());
+            log.debug("Properties loaded in "+Thread.currentThread().getName());
             return properties;
         } catch (IOException ex) {
             ex.printStackTrace();

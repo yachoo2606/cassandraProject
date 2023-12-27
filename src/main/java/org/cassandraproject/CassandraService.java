@@ -35,11 +35,10 @@ public class CassandraService {
     private Session session;
 
     public CassandraService(Properties properties){
-//        System.out.println("Initializing variables in CassandraService in "+Thread.currentThread().getName());
-//        log.info("Initializing variables in CassandraService in "+Thread.currentThread().getName());
+        log.debug("Initializing variables in CassandraService in "+Thread.currentThread().getName());
         initVariables(properties);
         this.selectedAddress = getRandomAddress();
-        log.info("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
+        log.debug("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
 
         try {
             Cluster cluster = Cluster.builder()
@@ -48,10 +47,10 @@ public class CassandraService {
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
 
-//            log.info("Trying to connect...");
-//            info("Trying to connect to Cassandra cluster at " + selectedAddress);
+            log.debug("Trying to connect...");
+            log.debug("Trying to connect to Cassandra cluster at " + selectedAddress);
             this.session = cluster.connect();
-//            log.info("Connected to cluster");
+            log.debug("Connected to cluster");
         } catch (Exception e) {
             log.error(e.getMessage());
             log.error("Failed connecting to cluster");
@@ -137,7 +136,7 @@ public class CassandraService {
             SELECT_ALL_FROM_USERS = session.prepare("SELECT * FROM users;");
             INSERT_INTO_USERS = session.prepare("INSERT INTO users (id,name) VALUES (?, ?);");
 			DELETE_ALL_FROM_USERS = session.prepare("TRUNCATE users;");
-//            log.info("Prepared statements");
+            log.debug("Prepared statements");
         }catch (Exception e){
             throw new BackendException("Could not prepare statements. "+e.getMessage(),e);
         }
@@ -152,7 +151,7 @@ public class CassandraService {
 
         try{
             session.execute(keyspaceOptions);
-            log.info("Keyspace created successful");
+            log.debug("Keyspace created successful");
         }catch (Exception e){
             log.error("creation of keyspace failed! "+e.getMessage());
             throw new BackendException("creation of keyspace failed! "+e.getMessage(),e);
@@ -161,7 +160,7 @@ public class CassandraService {
 
     public void useKeyspace() {
         session.execute("use " + this.keySpace + ";");
-        log.info("Keyspace switched successful");
+        log.debug("Keyspace switched successful");
     }
 
     public void createTableUsers() {
