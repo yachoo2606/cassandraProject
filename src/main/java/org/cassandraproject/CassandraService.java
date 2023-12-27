@@ -1,6 +1,12 @@
 package org.cassandraproject;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.schemabuilder.Create;
 import com.datastax.driver.core.schemabuilder.KeyspaceOptions;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
@@ -8,15 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.cassandraproject.exception.BackendException;
 
 import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 public class CassandraService {
@@ -26,8 +29,8 @@ public class CassandraService {
 	private static final String USER_FORMAT = "- ID: %-10d name: %-16s";
 
     private final List<String> addresses = new ArrayList<>();
-    private String selectedAddress;
-    private Integer port;
+    private List<Integer> ports = new ArrayList<>();
+    private InetSocketAddress selectedAddress;
     private String keySpace;
     private String passwordDB;
     private String usernameDB;
@@ -38,12 +41,12 @@ public class CassandraService {
         log.debug("Initializing variables in CassandraService in "+Thread.currentThread().getName());
         initVariables(properties);
         this.selectedAddress = getRandomAddress();
-        log.debug("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
+        log.info("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
 
         try {
             Cluster cluster = Cluster.builder()
-                .addContactPoint(this.selectedAddress)
-                .withPort(this.port)
+                .addContactPointsWithPorts(this.selectedAddress)
+                .withAddressTranslator(new AddressTranslator())
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
 
@@ -66,10 +69,12 @@ public class CassandraService {
             createMatchUsersSeatsTable();
     }
 
-    private String getRandomAddress() {
+    private InetSocketAddress getRandomAddress() {
         Random random = new Random();
         int index = random.nextInt(this.addresses.size());
-        return this.addresses.get(index);
+        String address = this.addresses.get(index);
+        Integer port = this.ports.get(index);
+        return new InetSocketAddress(address, port);
     }
 
     private void initVariables(Properties properties){
@@ -77,7 +82,10 @@ public class CassandraService {
         String addressTwo = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS_TWO", properties.getProperty("server.address_two"));
         String addressThree = System.getenv().getOrDefault("CASSANDRA_SERVER_ADDRESS_THREE", properties.getProperty("server.address_three"));
 
-        this.port = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT",properties.getProperty("server.port")));
+        Integer port = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT",properties.getProperty("server.port")));
+        Integer port2 = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT_TWO",properties.getProperty("server.port2")));
+        Integer port3 = Integer.parseInt(System.getenv().getOrDefault("CASSANDRA_SERVER_PORT_THREE",properties.getProperty("server.port3")));
+
         this.keySpace = System.getenv().getOrDefault("CASSANDRA_KEYSPACE",properties.getProperty("db.keyspace"));
         this.usernameDB = System.getenv().getOrDefault("CASSANDRA_USER",properties.getProperty("db.username"));
         this.passwordDB = System.getenv().getOrDefault("CASSANDRA_PASSWORD",properties.getProperty("db.password"));
@@ -102,11 +110,10 @@ public class CassandraService {
         this.addresses.add(addressTwo);
         this.addresses.add(addressThree);
 
-        if(this.port == null){
-            System.out.println("ERROR INITIALIZING VARIABLE port");
-            log.error("ERROR INITIALIZING VARIABLES port");
-            System.exit(1);
-        }
+        this.ports.add(port);
+        this.ports.add(port2);
+        this.ports.add(port3);
+
         if(this.keySpace == null){
             System.out.println("ERROR INITIALIZING VARIABLE keySpace");
             log.error("ERROR INITIALIZING VARIABLES keySpace");

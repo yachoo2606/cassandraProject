@@ -81,10 +81,10 @@ services:
       - CASSANDRA_KEYSPACE=stadium
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
-      - CASSANDRA_NUMBER_OF_CLIENTS=10
-      - ENV_USERS=50
-      - ENV_NUM_SECTORS=4
-      - ENV_NUM_SEATS_SECTOR=3
+      - CASSANDRA_NUMBER_OF_CLIENTS=2000
+      - ENV_USERS=1000
+      - ENV_NUM_SECTORS=40
+      - ENV_NUM_SEATS_SECTOR=100
       - ENV_NUM_MATCHES=1
     depends_on:
       - cassandra-node-one
@@ -95,3 +95,4 @@ services:
         ipv4_address: 172.23.0.26
     volumes:
       - cassandra_project_logs:/cassandraproject/executables/logs
+      - ./logs:/cassandraproject/executables/logs
