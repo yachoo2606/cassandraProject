@@ -49,7 +49,7 @@ public class Main {
         for(int i = 0; i< numberOfClients; i++){
             threadList.add(new Thread(new ClientThread(properties)));
             threadList.get(i).start();
-//            Thread.sleep(new Random().nextInt(1000-200)+200);
+            Thread.sleep(new Random().nextInt(200-10)+10);
         }
         for (int i = 0; i < numberOfClients; i++) {
             try {
