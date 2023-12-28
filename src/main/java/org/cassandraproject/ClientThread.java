@@ -44,7 +44,7 @@ public class ClientThread implements Runnable {
             log.info("Thread " + Thread.currentThread().getName() + " executed completed!");
 
         } catch (Exception e) {
-            log.error("Error occurred");
+            log.error("Error occurred: {}", e.getMessage());
             e.printStackTrace();
             throw new RuntimeException(e);
         }

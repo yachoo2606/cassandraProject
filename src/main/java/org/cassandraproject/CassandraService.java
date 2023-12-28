@@ -46,7 +46,7 @@ public class CassandraService {
         try {
             Cluster cluster = Cluster.builder()
                 .addContactPointsWithPorts(this.selectedAddress)
-                .withAddressTranslator(new AddressTranslator())
+                .withAddressTranslator(new AddressTranslator(properties))
                 .withCredentials(this.usernameDB, this.passwordDB)
                 .build();
 
