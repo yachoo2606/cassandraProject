@@ -63,7 +63,9 @@ public class CassandraService {
             createTableSectors();
             createTableSeats();
             createTableMatches();
+            createTableReservationRequests();
             createMatchUsersSeatsTable();
+
     }
 
     private String getRandomAddress() {
@@ -298,25 +300,54 @@ public class CassandraService {
         }
     }
 
-    public void reserveSeat(long matchId, long userId, long seatId) throws BackendException {
+    public void createTableReservationRequests() {
+        Create create = SchemaBuilder.createTable(this.keySpace, "reservation_requests")
+                .ifNotExists()
+                .addPartitionKey("match_id", DataType.bigint())
+                .addClusteringColumn("user_id", DataType.bigint())
+                .addColumn("seat_id", DataType.bigint())
+                .addColumn("request_time", DataType.timestamp());
+        session.execute(create);
+        log.info("Table reservation_requests created successful");
+    }
+
+    public void requestSeatReservation(long matchId, long userId, long seatId) throws BackendException {
         try {
-            ResultSet seatCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
-            if (!seatCheck.isExhausted()) {
-                log.info("[*** Seat " + seatId + " is already taken for match " + matchId + " ***]");
-                return ;
+            session.execute("INSERT INTO reservation_requests (match_id, user_id, seat_id, request_time) VALUES (?, ?, ?, dateof(now()));", matchId, userId, seatId);
+            log.info("[*** Seat " + seatId + " requested for user " + userId + " in match " + matchId + " ***]");
+        }
+        catch (Exception e) {
+            throw new BackendException("Error requesting seat: " + e.getMessage(), e);
+        }
+    }
+
+    public void processReservationRequests() throws BackendException {
+        try {
+            ResultSet reservationRequests = session.execute("SELECT * FROM reservation_requests;");
+
+            for (Row request : reservationRequests) {
+                long matchId = request.getLong("match_id");
+                long userId = request.getLong("user_id");
+                long seatId = request.getLong("seat_id");
+
+                ResultSet userSeatCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND user_id = ?;", matchId, userId);
+                if (!userSeatCheck.isExhausted()) {
+                    log.info("[*** User " + userId + " already has a seat reserved for match " + matchId + "***]");
+                    continue;
+                }
+
+                ResultSet seatTakenCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
+                if (seatTakenCheck.isExhausted()) {
+                    session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
+                    session.execute("DELETE FROM reservation_requests WHERE match_id = ? AND user_id = ?;", matchId, userId);
+
+                    log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + "***]");
+                } else {
+                    log.info("[*** Seat " + seatId + " is already taken for match " + matchId + matchId + "***]");
+                }
             }
-
-            ResultSet userCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND user_id = ?;", matchId, userId);
-            if (!userCheck.isExhausted()) {
-                log.info("[*** User " + userId + " has already reserved a seat for match " + matchId + " ***]");
-                return ;
-            }
-
-            session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
-            log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + " ***]");
-
         } catch (Exception e) {
-            throw new BackendException("Error reserving seat: " + e.getMessage(), e);
+            throw new BackendException("Error processing reservation requests: " + e.getMessage(), e);
         }
     }
 
