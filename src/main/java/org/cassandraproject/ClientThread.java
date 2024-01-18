@@ -39,7 +39,8 @@ public class ClientThread implements Runnable {
             long seatId = random.nextInt(numSeatsPerSectors * numSectors) + 1;
             long matchId = random.nextInt(numMatches) + 1;
 
-            cassandraService.reserveSeat(matchId, userId, seatId);
+            cassandraService.requestSeatReservation(matchId, userId, seatId);
+            cassandraService.processReservationRequests();
 
             log.info("Thread " + Thread.currentThread().getName() + " executed completed!");
 
