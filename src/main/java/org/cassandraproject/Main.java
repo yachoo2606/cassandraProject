@@ -1,19 +1,19 @@
 package org.cassandraproject;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import lombok.extern.slf4j.Slf4j;
 import org.cassandraproject.exception.BackendException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 public class Main {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws BackendException {
 
         Properties properties = loadProperties();
 
@@ -59,6 +59,9 @@ public class Main {
             }
         }
 
+        cassandraService.printStatistics();
+
+
         log.info("Program executed successfully");
         System.exit(0);
     }
@@ -77,5 +80,4 @@ public class Main {
             throw new RuntimeException(ex);
         }
     }
-
 }

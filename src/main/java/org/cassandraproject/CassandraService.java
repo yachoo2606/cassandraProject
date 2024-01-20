@@ -12,11 +12,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 public class CassandraService {
@@ -32,7 +28,12 @@ public class CassandraService {
     private String passwordDB;
     private String usernameDB;
 
-    private Session session;
+    private static Session session;
+    private Cluster cluster;
+
+    public static Session getSession() {
+        return session;
+    }
 
     public CassandraService(Properties properties){
         log.debug("Initializing variables in CassandraService in "+Thread.currentThread().getName());
@@ -41,7 +42,7 @@ public class CassandraService {
         log.debug("Thread: "+Thread.currentThread().getName()+" picked: "+this.selectedAddress);
 
         try {
-            Cluster cluster = Cluster.builder()
+             this.cluster = Cluster.builder()
                 .addContactPoint(this.selectedAddress)
                 .withPort(this.port)
                 .withCredentials(this.usernameDB, this.passwordDB)
@@ -208,11 +209,9 @@ public class CassandraService {
         Create create = SchemaBuilder.createTable(this.keySpace, "match_users_seats")
                 .ifNotExists()
                 .addPartitionKey("match_id", DataType.bigint())
-                .addClusteringColumn("user_id", DataType.bigint())
-                .addColumn("seat_id", DataType.bigint());
+                .addColumn("user_id", DataType.bigint())
+                .addClusteringColumn("seat_id", DataType.bigint());
         session.execute(create);
-        session.execute("CREATE INDEX IF NOT EXISTS seat_id_index ON " + this.keySpace + ".match_users_seats (seat_id);");
-
         log.info("Table MatchuserSeats created successful");
     }
 
@@ -304,42 +303,46 @@ public class CassandraService {
         Create create = SchemaBuilder.createTable(this.keySpace, "reservation_requests")
                 .ifNotExists()
                 .addPartitionKey("match_id", DataType.bigint())
+                .addClusteringColumn("seat_id", DataType.bigint())
                 .addClusteringColumn("user_id", DataType.bigint())
-                .addColumn("seat_id", DataType.bigint())
                 .addColumn("request_time", DataType.timestamp());
         session.execute(create);
+
         log.info("Table reservation_requests created successful");
     }
 
-    public void requestSeatReservation(long matchId, long userId, long seatId) throws BackendException {
+    public void requestSeatReservation(long matchId, long userId, List<Long> seatIds) throws BackendException {
         try {
-            session.execute("INSERT INTO reservation_requests (match_id, user_id, seat_id, request_time) VALUES (?, ?, ?, dateof(now()));", matchId, userId, seatId);
-            log.info("[*** Seat " + seatId + " requested for user " + userId + " in match " + matchId + " ***]");
-        }
-        catch (Exception e) {
-            throw new BackendException("Error requesting seat: " + e.getMessage(), e);
+            BatchStatement batch = new BatchStatement();
+
+            for (Long seatId : seatIds) {
+                SimpleStatement statement = new SimpleStatement(
+                        "INSERT INTO reservation_requests (match_id, user_id, seat_id, request_time) VALUES (?, ?, ?, dateof(now()));",
+                        matchId, userId, seatId
+                );
+                batch.add(statement);
+
+                log.info("[*** Seat " + seatId + " requested for user " + userId + " in match " + matchId + " ***]");
+            }
+
+            session.execute(batch);
+        } catch (Exception e) {
+            throw new BackendException("Error requesting seats: " + e.getMessage(), e);
         }
     }
 
-    public void processReservationRequests() throws BackendException {
+    public void processReservationRequests(long matchId) throws BackendException {
         try {
-            ResultSet reservationRequests = session.execute("SELECT * FROM reservation_requests;");
+            ResultSet reservationRequests = session.execute("SELECT * FROM reservation_requests WHERE match_id = ?;", matchId);
 
             for (Row request : reservationRequests) {
-                long matchId = request.getLong("match_id");
                 long userId = request.getLong("user_id");
                 long seatId = request.getLong("seat_id");
-
-                ResultSet userSeatCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND user_id = ?;", matchId, userId);
-                if (!userSeatCheck.isExhausted()) {
-                    log.info("[*** User " + userId + " already has a seat reserved for match " + matchId + "***]");
-                    continue;
-                }
 
                 ResultSet seatTakenCheck = session.execute("SELECT * FROM match_users_seats WHERE match_id = ? AND seat_id = ?;", matchId, seatId);
                 if (seatTakenCheck.isExhausted()) {
                     session.execute("INSERT INTO match_users_seats (match_id, user_id, seat_id) VALUES (?, ?, ?);", matchId, userId, seatId);
-                    session.execute("DELETE FROM reservation_requests WHERE match_id = ? AND user_id = ?;", matchId, userId);
+                    session.execute("DELETE FROM reservation_requests WHERE match_id = ? AND user_id = ? AND seat_id = ?;", matchId, userId, seatId);
 
                     log.info("[*** Seat " + seatId + " reserved for user " + userId + " in match " + matchId + "***]");
                 } else {
@@ -351,15 +354,92 @@ public class CassandraService {
         }
     }
 
+    public void printStatistics() throws BackendException {
+        try {
+            long totalUsers = session.execute("SELECT COUNT(*) FROM users;").one().getLong(0);
+
+            ResultSet matchUsersSeatsResultSet = session.execute("SELECT user_id, seat_id FROM match_users_seats;");
+
+            long usersWithSeats = countDistinctUserSeatCombinations(matchUsersSeatsResultSet);
+
+            long totalSeats = session.execute("SELECT COUNT(*) FROM seats;").one().getLong(0);
+
+            long seatReservationRequests = session.execute("SELECT COUNT(*) FROM reservation_requests;").one().getLong(0);
+
+            long seatsAssignedToMultipleUsers = countSeatsAssignedToMultipleUsers(matchUsersSeatsResultSet);
+
+            long usersAssignedToMultipleSeats = countUsersAssignedToMultipleSeats(matchUsersSeatsResultSet);
+
+
+            log.info("Overall Number of Users: " + totalUsers);
+            log.info("Number of Assigned Seats: " + usersWithSeats);
+            log.info("Overall Number of Seats: " + totalSeats);
+            log.info("Number of Seat Reservation Requests: " + seatReservationRequests);
+            log.info("Number of Seats Assigned to More Than One User: " + seatsAssignedToMultipleUsers);
+            log.info("Number of Users Assigned to Multiple Seats: " + usersAssignedToMultipleSeats);
+
+        }
+        catch (Exception e) {
+            throw new BackendException("Error processing reservation requests: " + e.getMessage(), e);
+        }
+    }
+
+    private static long countSeatsAssignedToMultipleUsers(ResultSet resultSet) {
+        Set<Long> uniqueSeats = new HashSet<>();
+        Set<Long> seatsAssignedToMultipleUsers = new HashSet<>();
+
+        for (Row row : resultSet) {
+            long seatId = row.getLong("seat_id");
+
+            if (uniqueSeats.contains(seatId)) {
+                seatsAssignedToMultipleUsers.add(seatId);
+            } else {
+                uniqueSeats.add(seatId);
+            }
+        }
+
+        return seatsAssignedToMultipleUsers.size();
+    }
+
+    private static long countUsersAssignedToMultipleSeats(ResultSet resultSet) {
+        Set<Long> uniqueUsers = new HashSet<>();
+        Set<Long> usersAssignedToMultipleSeats = new HashSet<>();
+
+        for (Row row : resultSet) {
+            long userId = row.getLong("user_id");
+
+            if (uniqueUsers.contains(userId)) {
+                usersAssignedToMultipleSeats.add(userId);
+            } else {
+                uniqueUsers.add(userId);
+            }
+        }
+
+        return usersAssignedToMultipleSeats.size();
+    }
+
+    private static long countDistinctUserSeatCombinations(ResultSet resultSet) {
+        Set<String> userSeatCombinations = new HashSet<>();
+        for (Row row : resultSet) {
+            long userId = row.getLong("user_id");
+            long seatId = row.getLong("seat_id");
+            userSeatCombinations.add(userId + "_" + seatId);
+        }
+        return userSeatCombinations.size();
+    }
+
 
 
     protected void finalize() {
-		try {
-			if (session != null) {
-				session.getCluster().close();
-			}
-		} catch (Exception e) {
-			log.error("Could not close existing cluster", e);
-		}
-	}
+        try {
+            if (session != null) {
+                session.close();
+            }
+            if (cluster != null) {
+                cluster.close();
+            }
+        } catch (Exception e) {
+            log.error("Could not close existing cluster", e);
+        }
+    }
 }

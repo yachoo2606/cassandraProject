@@ -81,10 +81,10 @@ services:
       - CASSANDRA_KEYSPACE=stadium
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=password123
-      - CASSANDRA_NUMBER_OF_CLIENTS=500
-      - ENV_USERS=100
+      - CASSANDRA_NUMBER_OF_CLIENTS=10
+      - ENV_USERS=200
       - ENV_NUM_SECTORS=4
-      - ENV_NUM_SEATS_SECTOR=5
+      - ENV_NUM_SEATS_SECTOR=50
       - ENV_NUM_MATCHES=1
     depends_on:
       - cassandra-node-one

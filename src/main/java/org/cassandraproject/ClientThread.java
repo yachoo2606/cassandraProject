@@ -3,6 +3,7 @@ package org.cassandraproject;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
 
@@ -36,11 +37,19 @@ public class ClientThread implements Runnable {
 
             Random random = new Random();
             long userId = random.nextInt(numUsers) + 1;
-            long seatId = random.nextInt(numSeatsPerSectors * numSectors) + 1;
             long matchId = random.nextInt(numMatches) + 1;
 
-            cassandraService.requestSeatReservation(matchId, userId, seatId);
-            cassandraService.processReservationRequests();
+            int numTickets = random.nextInt(10) + 1;
+
+            ArrayList<Long> seatIds = new ArrayList<Long>();
+            for (int i=0; i<numTickets; i++) {
+                long seatId = random.nextInt(numSeatsPerSectors * numSectors) + 1;
+                seatIds.add(seatId);
+            }
+
+            cassandraService.requestSeatReservation(matchId, userId, seatIds);
+
+            cassandraService.processReservationRequests(matchId);
 
             log.info("Thread " + Thread.currentThread().getName() + " executed completed!");
 
